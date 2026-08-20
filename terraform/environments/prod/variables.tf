@@ -12,3 +12,8 @@ variable "project_name" {
   description = "Project Name"
   type        = string
 }
+
+variable "trade_api_url" {
+  description = "Dummy tradde API endpoint"
+  type        = string
+}
