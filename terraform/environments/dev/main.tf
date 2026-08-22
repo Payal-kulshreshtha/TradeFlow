@@ -9,10 +9,10 @@ module "extract_data_lambda" {
   function_name = "${var.project_name}-${var.environment}-extract-data"
   source_path   = "../../../lambdas/extract_data"
   role_arn      = module.iam.lambda_execution_role_arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.12"
-  timeout       = 60
-  memory_size   = 256
+  handler       = var.handler
+  runtime       = var.runtime
+  timeout       = var.timeout
+  memory_size   = var.memory_size
 
   environment_variables = {
     API_URL   = var.trade_api_url
@@ -25,4 +25,84 @@ module "trade_data_bucket" {
 
   bucket_name = "${var.project_name}-${var.environment}-trade-data"
   environment = var.environment
+}
+
+module "process_data_lambda" {
+  source        = "../../modules/lambda"
+  function_name = "${var.project_name}-${var.environment}-process-data"
+  source_path   = "../../../lambdas/process_data"
+  role_arn      = module.iam.lambda_execution_role_arn
+  handler       = var.handler
+  runtime       = var.runtime
+  timeout       = var.timeout
+  memory_size   = var.memory_size
+
+  environment_variables = {
+    S3_BUCKET = module.trade_data_bucket.bucket_name
+  }
+}
+
+
+module "step_function_iam" {
+  source       = "../../modules/step_function_iam"
+  project_name = var.project_name
+  environment  = var.environment
+  lambda_arns = [
+    module.extract_data_lambda.function_arn,
+    module.process_data_lambda.function_arn
+  ]
+}
+
+module "trade_flow_state_machine" {
+  source             = "../../modules/step_function"
+  state_machine_name = "${var.project_name}-${var.environment}-pipeline"
+
+  role_arn = module.step_function_iam.step_function_execution_role_arn
+  definition = jsonencode({
+    Comment = "TradeFlow data processing pipeline"
+    StartAt = "ExtractData"
+    States = {
+      ExtractData = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+
+        Parameters = {
+          FunctionName = module.extract_data_lambda.function_arn
+          Payload      = {}
+        }
+        ResultSelector = {
+          "status.$"  = "$.Payload.status"
+          "bucket.$" = "$.Payload.bucket"
+          "key.$"    = "$.Payload.key"
+        }
+        ResultPath = "$.extract_result"
+        Next       = "ProcessData"
+      }
+
+      ProcessData = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+
+
+        Parameters = {
+          FunctionName = module.process_data_lambda.function_arn
+
+          Payload = {
+            "bucket.$" = "$.extract_result.bucket"
+            "key.$"    = "$.extract_result.key"
+          }
+        }
+
+        ResultSelector = {
+          "status.$"         = "$.Payload.status"
+          "bucket.$"        = "$.Payload.bucket"
+          "raw_key.$"       = "$.Payload.raw_key"
+          "processed_key.$" = "$.Payload.processed_key"
+          "record_count.$"   = "$.Payload.record_count"
+        }
+        ResultPath = "$.process_result"
+        End        = true
+      }
+    }
+  })
 }

@@ -17,3 +17,23 @@ output "trade_data_bucket_name" {
   description = "Trade data s3 bucket"
   value       = module.trade_data_bucket.bucket_name
 }
+
+output "process_data_lambda_arn" {
+  description = "Process Data Lambda ARN"
+  value       = module.process_data_lambda.function_arn
+}
+
+output "process_data_lambda_name" {
+  description = "Process Data Lambda name"
+  value       = module.process_data_lambda.function_name
+}
+
+output "tradeflow_state_machine_arn" {
+  description = "TradeFlow step function state machine arn"
+  value       = module.trade_flow_state_machine.state_machine_arn
+}
+
+output "tradeflow_state_machine_name" {
+  description = "TradeFlow step function state machine name"
+  value       = module.trade_flow_state_machine.state_machine_name
+}
