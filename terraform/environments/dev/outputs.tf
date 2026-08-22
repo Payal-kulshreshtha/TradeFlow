@@ -37,3 +37,13 @@ output "tradeflow_state_machine_name" {
   description = "TradeFlow step function state machine name"
   value       = module.trade_flow_state_machine.state_machine_name
 }
+
+output "sns_topic_arn" {
+  description = "SNS Topic Arn"
+  value = module.tradeflow_notification.topic_arn
+}
+
+output "sns_topic_name" {
+  description = "SNS Topic Name"
+  value = module.tradeflow_notification.topic_name
+}

@@ -9,6 +9,6 @@ variable "environment" {
 }
 
 variable "lambda_arns" {
-    description = "Lambda ARNs Step FUnctions can invoke"
-    type = list(string)
+  description = "Lambda ARNs Step FUnctions can invoke"
+  type        = list(string)
 }

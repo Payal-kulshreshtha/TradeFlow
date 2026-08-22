@@ -44,3 +44,22 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
   })
 
 }
+
+resource "aws_iam_role_policy" "lambda_sns_access" {
+  name = "${var.project_name}-${var.environment}-lambda-sns-access"
+  role = aws_iam_role.lambda_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = var.sns_topic_arn
+      }
+    ]
+  })
+}
